@@ -42,13 +42,14 @@ class PdoBase(Mapping):
 
     def __getitem__(self, key: Union[int, str]):
         if isinstance(key, int):
-            if key == 0:
-                raise KeyError("PDO index zero requested for 1-based sequence")
-            if (
-                0 < key <= 512  # By PDO Index
-                or 0x1400 <= key <= 0x1BFF  # By RPDO / TPDO mapping or communication record
-            ):
+            # First try direct mapping index (1-512)
+            if key in self.map:
                 return self.map[key]
+            # Then check if it's a Communication or Mapping object dictionary index
+            # by checking the actual offsets defined in the map
+            for pdo_map in self.map.values():
+                if key == pdo_map.com_record.index or key == pdo_array.map_array.index:
+                    return pdo_map
         for pdo_map in self.map.values():
             try:
                 return pdo_map[key]
